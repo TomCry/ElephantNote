@@ -6,6 +6,8 @@ from flask_migrate import Migrate, MigrateCommand
 
 from info import create_app, db
 
+# manage.py是程序启动的入口，只关心启动的相关参数以及内容，不关心具体业务逻辑
+
 # 通过指定的配置名字创建对应配置的app
 app = create_app('dev')
 
@@ -16,16 +18,6 @@ Migrate(app, db)
 manager.add_command('db', MigrateCommand)
 
 
-@app.route('/')
-def index():
-    session['name'] = 'itheima'
-    # 测试打印日志
-    # logging.debug('测试debug')
-    # logging.warning('测试warning')
-    # logging.error('测试error')
-    # logging.fatal('测试debug')
-    # current_app.logger.error("测试error")
-    return "index"
 
 
 
