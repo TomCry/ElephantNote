@@ -1,3 +1,4 @@
+import logging
 from redis import StrictRedis
 
 
@@ -25,6 +26,9 @@ class Config(object):
     # 指定session保存到redis
     SESSION_REDIS = StrictRedis(host=REDIS_HOST, port=REDIS_PORT)
 
+    # 设置日志等级
+    LOG_LEVEL = logging.DEBUG
+
 
 class DevConfig(Config):
     """开发环境下配置"""
@@ -33,6 +37,7 @@ class DevConfig(Config):
 class ProConfig(Config):
     """生产环境配置"""
     DEBUG = False
+    LOG_LEVEL = logging.WARNING
 
 class TestingConfig(Config):
     """单元测试环境下的配置"""
