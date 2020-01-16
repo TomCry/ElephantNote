@@ -4,6 +4,7 @@ from flask_wtf import CSRFProtect
 from redis import StrictRedis
 # 可以用来指定session保存位置
 from flask_session import Session
+from flask_script import Manager
 
 class Config(object):
     """项目的配置"""
@@ -41,6 +42,8 @@ CSRFProtect(app)
 # 设置session保存指定位置
 Session(app)
 
+manager = Manager(app)
+
 @app.route('/')
 def index():
     session['name'] = 'itheima'
@@ -48,4 +51,4 @@ def index():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    manager.run()
