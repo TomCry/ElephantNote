@@ -24,3 +24,23 @@ class Config(object):
     PERMANENT_SESSION_LIFETIME = 86400 * 2
     # 指定session保存到redis
     SESSION_REDIS = StrictRedis(host=REDIS_HOST, port=REDIS_PORT)
+
+
+class DevConfig(Config):
+    """开发环境下配置"""
+    DEBUG = True
+
+class ProConfig(Config):
+    """生产环境配置"""
+    DEBUG = False
+
+class TestingConfig(Config):
+    """单元测试环境下的配置"""
+    DEBUG = True
+    TESTING = True
+
+config = {
+    "dev": DevConfig,
+    "production": ProConfig,
+    "testing": TestingConfig
+}
