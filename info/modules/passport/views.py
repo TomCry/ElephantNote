@@ -27,7 +27,7 @@ def send_sms_code():
     mobile = params_dict.get('mobile')
     image_code = params_dict.get("image_code")
     image_code_id = params_dict.get("image_code_id")
-
+    return jsonify(errno=RET.OK, errmsg="发送成功")
     # 2. 校验参数
     if not all([mobile, image_code, image_code_id]):
         return jsonify(errno=RET.PARAMERR, errmsg="参数有误")
