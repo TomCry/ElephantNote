@@ -11,7 +11,7 @@ from . import passport_blu
 from info.utils.captcha.captcha import captcha
 
 
-@passport_blu.route('/register', method=["POST"])
+@passport_blu.route('/register', methods=["POST"])
 def register():
     """
     注册的逻辑
@@ -52,27 +52,27 @@ def register():
     if real_sms_code != smscode:
         return jsonify(errno=RET.DATAERR, errmsg="验证码输入错误")
 
-    # 5. User ，赋值属性
-    user = User()
-    user.mobile = mobile
-    user.nick_name = mobile
-    # 记录用户最后一次登录时间
-    user.last_login = datetime.now()
-    # TODO 对密码做处理
-
-    # 6. user添加数据库
-    try:
-        db.session.add(user)
-        db.session.commit()
-    except Exception as e:
-        current_app.logger.error(e)
-        db.session.rollback()
-        return jsonify(errno=RET.DBERR, errmsg="数据保存失败")
-
-    # 往session中保存数据表示当前已登录
-    session["user_id"] = user.id
-    session["mobile"] = user.mobile
-    session["nick_name"] = user.nick_name
+    # # 5. User ，赋值属性
+    # user = User()
+    # user.mobile = mobile
+    # user.nick_name = mobile
+    # # 记录用户最后一次登录时间
+    # user.last_login = datetime.now()
+    # # TODO 对密码做处理
+    #
+    # # 6. user添加数据库
+    # try:
+    #     db.session.add(user)
+    #     db.session.commit()
+    # except Exception as e:
+    #     current_app.logger.error(e)
+    #     db.session.rollback()
+    #     return jsonify(errno=RET.DBERR, errmsg="数据保存失败")
+    #
+    # # 往session中保存数据表示当前已登录
+    # session["user_id"] = user.id
+    # session["mobile"] = user.mobile
+    # session["nick_name"] = user.nick_name
 
 
     # 7.返回响应
