@@ -121,6 +121,32 @@ $(function(){
         }
 
         // 发起登录请求
+
+        var params = {
+            "mobile": mobile,
+            "passport": password
+        }
+
+        $.ajax({
+            url: "/passport/login",
+            type: "post",
+            contentType: "application/json",
+            // headers:{
+            //     "X-CSRFToken": getCookie("csrf_token")
+            // },
+            data: JSON.stringify(params),
+            success: function(resp){
+                if (resp.errno == '0'){
+                    location.reload()
+                }else{
+                    alert(resp.errmsg);
+                    $("#login-password-err").html(resp.errmsg);
+                    $("#login-password-err").show();
+                }
+            }
+        })
+
+
     })
 
 
