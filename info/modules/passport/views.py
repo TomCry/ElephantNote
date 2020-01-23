@@ -11,7 +11,7 @@ from . import passport_blu
 from info.utils.captcha.captcha import captcha
 
 
-@passport_blu.route('/logout', methods=["POST"])
+@passport_blu.route('/logout')
 def logout():
     """
     退出登录
@@ -67,6 +67,19 @@ def login():
     session["mobile"] = user.mobile
     session["nick_name"] = user.nick_name
 
+    # 设置当前用户最后一次登录时间
+    user.last_login = datetime.now()
+
+    # 如果在视图函数中，对模型身上的属性有修改，需要commit到数据库保存
+    # 但是其实不用写db.session.commit()，前提是对SQLAlchemy有相关配置
+
+    # 修改数据库
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(e)
+
     # 6 响应
     return jsonify(errno=RET.OK, errmsg="登录成功")
 
@@ -121,7 +134,7 @@ def register():
     # 记录用户最后一次登录时间
     user.last_login = datetime.now()
     # TODO 对密码做处理
-
+    user.password = password
     # 6. user添加数据库
     try:
         db.session.add(user)
@@ -166,12 +179,13 @@ def send_sms_code():
     if not all([mobile, image_code, image_code_id]):
         return jsonify(errno=RET.PARAMERR, errmsg="参数有误")
     #
-    if not re.match('1[35678]\\d{9}'):
+    if not re.match('1[35678]\\d{9}', mobile):
         return jsonify(errno=RET.PARAMERR, errmsg="手机号格式不正确")
 
     # 3. 从redis中取验证码内容
     try:
-        real_image_code = redis_store.get("ImageColdId_" + image_code_id)
+        real_image_code = redis_store.get("ImageCodeId_" + image_code_id)
+        print(real_image_code)
     except Exception as e:
         current_app.logger.error(e)
         return jsonify(errno=RET.DBERR, errmsg="数据查询失败")
@@ -186,7 +200,7 @@ def send_sms_code():
     # 5. 如果一致，生成短信验证码内容         # 随机数字，保证数字长度6位，不够在前面补上0
     sms_code_str ="%06d" % random.randint(0, 999999)
     print(sms_code_str)
-    current_app.looger.debug("短信验证码内容是: %s" % sms_code_str)
+    current_app.logger.debug("短信验证码内容是: %s" % sms_code_str)
     # 6. 发送短信验证码
     # result = CCP().send_template_sms(mobile, [sms_code_str, constants.SMS_CODE_REDIS_EXPIRES / 5], "1")
     # if result != 0:
@@ -207,12 +221,13 @@ def get_image_code():
     '''生成图片验证码并返回'''
     # 1. 取到参数 args 取url中？后面的参数
     image_code_id = request.args.get('imageCodeId', None)
-    print(image_code_id)
     # 2. 判断参数是否有值
     if not image_code_id:
         return abort(403)
     # 3. 生成图片验证码
     name, text, image = captcha.generate_captcha()
+    print(text)
+    current_app.logger.debug("图片验证码内容是：%s" % text)
     # 4. 保存图片验证码文字内容到redis
     try:
         redis_store.set("ImageCodeId_" + image_code_id, text, constants.IMAGE_CODE_REDIS_EXPIRES)
