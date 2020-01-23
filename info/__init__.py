@@ -5,6 +5,7 @@ import logging
 from flask_session import Session
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import CSRFProtect
+from flask_wtf.csrf import generate_csrf
 from redis import StrictRedis
 
 from config import config
@@ -41,9 +42,20 @@ def create_app(config_name):
     global redis_store
     redis_store = StrictRedis(host=config[config_name].REDIS_HOST,port=config[config_name].REDIS_PORT, decode_responses=True)
     # 开启csrf保护,只做服务器验证功能
-    # CSRFProtect(app)
+    # 4-10 打开csrf保护 帮我们从cookie中取出随机值，从表单中取出随机值，然后随机进行校验，并且响应校验结果
+    # 1. 在返回响应的时候，往cookie中添加一个csrf_token，并且在表单中添加一个隐藏的csrf——token
+    # 我们现在使用的是ajax请求，我们需要在ajax请求的时候带上csrf_token
+    CSRFProtect(app)
     # 设置session保存指定位置
     Session(app)
+
+    @app.after_request
+    def after_request(response):
+        # 生成随机的csrf_token的值
+        csrf_token = generate_csrf()
+        # 设置一个cookie
+        response.set_cookie("csrf_token", csrf_token)
+        return response
 
     # 注册蓝图
     # 如果在上面导入，会在views中报错，报错原因自己再理解一下
