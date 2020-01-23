@@ -1,7 +1,7 @@
 from flask import render_template, current_app, session
 
 from info import redis_store
-from info.models import User
+from info.models import User, News
 from . import index_blu
 
 
@@ -23,9 +23,20 @@ def index():
         except Exception as e:
             current_app.logger.error(e)
 
+    # 右侧新闻排行逻辑
+    try:
+        news_list = News.query.order_by(News.clicks.desc()).limit(6)
+    except Exception as e:
+        current_app.logger.error(e)
+
+    news_dict_list = []
+    # 遍历对象列表，将对象的字典添加到字典列表中
+    for news in news_list:
+        news_dict_list.append(news.to_basic_dict())
 
     data = {
-        "user": user.to_dict() if user else None
+        "user": user.to_dict() if user else None,
+        "news_dict_list": news_dict_list
     }
 
 
