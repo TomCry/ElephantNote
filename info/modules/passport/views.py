@@ -11,6 +11,53 @@ from . import passport_blu
 from info.utils.captcha.captcha import captcha
 
 
+@passport_blu.route('/login', methods=["POST"])
+def login():
+    """
+    1.获取参数
+    2.校验参数
+    3.校验密码是否正确
+    4.保存用户登录状态
+    5.返回响应
+    :return:
+    """
+    params_dict = request.json
+    mobile = params_dict.get("mobile")
+    password = params_dict.get("password")
+
+    # 2 校验参数
+    if not all([mobile, password]):
+        return jsonify(errno=RET.PARAMERR, errmsg="参数错误")
+
+    # 校验手机号是否正确
+    if not re.match('1[25678]\\d{9}', mobile):
+        return jsonify(errno=RET.PARAMERR, errmsg="手机号格式不正确")
+
+    # 3. 校验密码是否正确
+    # 3-1 查询当前是否有该用户
+    try:
+        user = User.query.filter(User.mobile == mobile).first()
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DB, errmsg="数据查询错误")
+
+    if not user:
+        return jsonify(errno=RET.NODATA, errmsg="用户不存在")
+
+    # 4 校验密码
+    if not user.check_password(password):
+        return jsonify(errno=RET.PWDERR, errmsg="密码错误")
+
+    # 5 保存用户状态
+    session["user_id"] = user.id
+    session["mobile"] = user.mobile
+    session["nick_name"] = user.nick_name
+
+    # 6 响应
+    return jsonify(errno=RET.OK, errmsg="登录成功")
+
+
+
 @passport_blu.route('/register', methods=["POST"])
 def register():
     """
@@ -41,6 +88,7 @@ def register():
     # 3. 取真实验证码
     try:
         real_sms_code = redis_store.get("SMS_" + mobile)
+        print(real_sms_code)
     except Exception as e:
         current_app.logger.error(e)
         return jsonify(errno=RET.DBERR, errmsg="数据查询失败")
@@ -99,7 +147,7 @@ def send_sms_code():
     mobile = params_dict.get('mobile')
     image_code = params_dict.get("image_code")
     image_code_id = params_dict.get("image_code_id")
-    return jsonify(errno=RET.OK, errmsg="发送成功")
+    # return jsonify(errno=RET.OK, errmsg="发送成功")
     # 2. 校验参数
     if not all([mobile, image_code, image_code_id]):
         return jsonify(errno=RET.PARAMERR, errmsg="参数有误")
@@ -123,12 +171,13 @@ def send_sms_code():
 
     # 5. 如果一致，生成短信验证码内容         # 随机数字，保证数字长度6位，不够在前面补上0
     sms_code_str ="%06d" % random.randint(0, 999999)
+    print(sms_code_str)
     current_app.looger.debug("短信验证码内容是: %s" % sms_code_str)
     # 6. 发送短信验证码
-    result = CCP().send_template_sms(mobile, [sms_code_str, constants.SMS_CODE_REDIS_EXPIRES / 5], "1")
-    if result != 0:
-        # 代表发送不成功
-        return jsonify(errno=RET.THIRDERR, errmsg="发送短信失败")
+    # result = CCP().send_template_sms(mobile, [sms_code_str, constants.SMS_CODE_REDIS_EXPIRES / 5], "1")
+    # if result != 0:
+    #     # 代表发送不成功
+    #     return jsonify(errno=RET.THIRDERR, errmsg="发送短信失败")
     # 保存验证码内容到redis
     try:
         redis_store.set("SMS_" + mobile, sms_code_str, constants.SMS_CODE_REDIS_EXPIRES)
