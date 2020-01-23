@@ -74,11 +74,11 @@ def login():
     # 但是其实不用写db.session.commit()，前提是对SQLAlchemy有相关配置
 
     # 修改数据库
-    try:
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        current_app.logger.error(e)
+    # try:
+    #     db.session.commit()
+    # except Exception as e:
+    #     db.session.rollback()
+    #     current_app.logger.error(e)
 
     # 6 响应
     return jsonify(errno=RET.OK, errmsg="登录成功")
