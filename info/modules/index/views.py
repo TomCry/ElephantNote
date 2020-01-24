@@ -13,7 +13,7 @@ def news_list():
     """
     # 1. 获取参数
     cid = request.args.get("cid", "1")
-    page = request.args.get("page", "1")
+    page = request.args.get("page", "3")
     per_page = request.args.get("per_page", "10")
 
     # 2. 校验参数
