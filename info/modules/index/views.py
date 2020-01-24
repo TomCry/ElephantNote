@@ -1,7 +1,7 @@
 from flask import render_template, current_app, session, request, jsonify
 
 from info import redis_store, constants
-from info.models import User, News
+from info.models import User, News, Category
 from info.utils.response_code import RET
 from . import index_blu
 
@@ -47,6 +47,7 @@ def news_list():
     for news in news_model_list:
         news_dict_list.append(news.to_basic_dict())
 
+
     data = {
         "total_page": total_page,
         "current_page": current_page,
@@ -84,9 +85,17 @@ def index():
     for news in news_list:
         news_dict_list.append(news.to_basic_dict())
 
+
+    # 查询分类数据， 通过模板渲染
+    categories = Category.query.all()
+    category_li = []
+    for category in categories:
+        category_li.append(category.to_dict())
+
     data = {
         "user": user.to_dict() if user else None,
-        "news_dict_list": news_dict_list
+        "news_dict_list": news_dict_list,
+        "category_li": category_li
     }
 
 
