@@ -11,8 +11,7 @@ from redis import StrictRedis
 from config import config
 
 
-# 在flask很多扩展里面都可以先初始化，然后init_app方法初始化
-from info.utils.common import to_index_class
+
 
 db = SQLAlchemy()
 # 1. 第一种方式指定
@@ -50,7 +49,8 @@ def create_app(config_name):
     CSRFProtect(app)
     # 设置session保存指定位置
     Session(app)
-
+    # 在flask很多扩展里面都可以先初始化，然后init_app方法初始化
+    from info.utils.common import to_index_class
 
     # 添加自定义过滤器
     app.add_template_filter(to_index_class, "index_class")
