@@ -10,7 +10,7 @@ from info.utils.common import user_login_data
 from info.utils.response_code import RET
 
 
-@news_blu.route('/news_comment', method=["POST"])
+@news_blu.route('/news_comment', methods=["POST"])
 @user_login_data
 def comment_news():
     """
@@ -24,7 +24,7 @@ def comment_news():
         return jsonify(errno=RET.SESSIONERR, errmsg="用户未登录")
     # 2.获取请求参数
     news_id = request.json.get("news_id")
-    content = request.json.get("content")
+    content = request.json.get("comment")
     parent_id = request.json.get("parent_id")
 
     # 3.判断参数
@@ -67,7 +67,7 @@ def comment_news():
         current_app.logger.error(e)
         db.session.rollback()
 
-    return jsonify(errno=RET.OK, errmsg="OK", comment=comment.to_dict())
+    return jsonify(errno=RET.OK, errmsg="OK", data=comment.to_dict())
 
 
 @news_blu.route('/news_collect',methods=["POST"])
