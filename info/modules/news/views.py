@@ -10,7 +10,7 @@ from info.utils.common import user_login_data
 from info.utils.response_code import RET
 
 
-@news_blu.route('/news_collect',method=["POST"])
+@news_blu.route('/news_collect',methods=["POST"])
 @user_login_data
 def collect_news():
     """
