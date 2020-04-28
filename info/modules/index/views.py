@@ -2,6 +2,7 @@ from flask import render_template, current_app, session, request, jsonify
 
 from info import redis_store, constants
 from info.models import User, News, Category
+from info.utils.common import user_login_data
 from info.utils.response_code import RET
 from . import index_blu
 
@@ -57,6 +58,7 @@ def news_list():
     return jsonify(errno=RET.OK, errmsg="OK", data=data)
 
 @index_blu.route('/')
+@user_login_data
 def index():
     # # redis保存值
     # redis_store.set("name","notation")
@@ -66,13 +68,15 @@ def index():
     :return:
     """
     # 1
-    user_id = session.get("user_id", None)
-    user = None
-    if user_id:
-        try:
-            user = User.query.get(user_id)
-        except Exception as e:
-            current_app.logger.error(e)
+
+    # user_id = session.get("user_id", None)
+    # user = None
+    # if user_id:
+    #     try:
+    #         user = User.query.get(user_id)
+    #     except Exception as e:
+    #         current_app.logger.error(e)
+    user = g.user
 
     # 右侧新闻排行逻辑
     try:
