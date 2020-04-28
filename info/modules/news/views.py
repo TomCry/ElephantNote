@@ -1,13 +1,73 @@
 from flask import render_template, current_app, session, abort, g, request, jsonify
 
-from info import constants
-from info.models import News, User
+from info import constants, db
+from info.models import News, User, Comment
 from info.modules.news import news_blu
 
 
 # 127.0.0.1:9999/news/2
 from info.utils.common import user_login_data
 from info.utils.response_code import RET
+
+
+@news_blu.route('/news_comment', method=["POST"])
+@user_login_data
+def comment_news():
+    """
+    评论新闻或者回复某条新闻下指定的评论
+    :return:
+    """
+    # 1.获取用户
+    user = g.user
+
+    if not user:
+        return jsonify(errno=RET.SESSIONERR, errmsg="用户未登录")
+    # 2.获取请求参数
+    news_id = request.json.get("news_id")
+    content = request.json.get("content")
+    parent_id = request.json.get("parent_id")
+
+    # 3.判断参数
+    if not all([news_id, content]):
+        return jsonify(errno=RET.PARAMERR, errmsg="参数错误")
+
+    try:
+        news_id = int(news_id)
+        if parent_id:
+            parent_id = int(parent_id)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.PARAMERR, errmsg="参数错误")
+
+    # 查询新闻，并判断新闻是否存在
+
+    try:
+        news = News.query.get(news_id)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="数据查询错误")
+
+    if not news:
+        return jsonify(errno=RET.NODATA, errmsg="未查询到新闻数据")
+
+    # 4.初始化评论模型，并且赋值
+    comment = Comment()
+    comment.user_id = user.id
+    comment.news_id = news.id
+    comment.content = content
+    if parent_id:
+        comment.parent_id = parent_id
+
+    # 5.添加到数据库
+    # commit的原因，因为需要在commit之后才会生成id，我们需要返回comment_id
+    try:
+        db.session.add(comment)
+        db.session.commit()
+    except Exception as e:
+        current_app.logger.error(e)
+        db.session.rollback()
+
+    return jsonify(errno=RET.OK, errmsg="OK", comment=comment.to_dict())
 
 
 @news_blu.route('/news_collect',methods=["POST"])
