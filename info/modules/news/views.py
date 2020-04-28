@@ -59,6 +59,13 @@ def news_detail(news_id):
     # 判断用户是否收藏当前新闻，如果收藏：
     # is_collected = True
 
+    if user:
+        # 判断用户是否收藏新闻
+        # collection_news不用加all()，sqlalchemy会自动进行加载
+        if news in user.collection_news:
+            is_collected = True
+
+
     data = {
         "user": user.to_dict() if user else None,
         "news_dict_li": news_dict_list,
