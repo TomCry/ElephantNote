@@ -1,4 +1,4 @@
-from flask import render_template, current_app, session, request, jsonify
+from flask import render_template, current_app, session, request, jsonify, g
 
 from info import redis_store, constants
 from info.models import User, News, Category

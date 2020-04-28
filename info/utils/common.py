@@ -1,5 +1,5 @@
 # 共用的工具类
-from flask import session, current_app
+from flask import session, current_app, g
 
 from info.models import User
 import functools
