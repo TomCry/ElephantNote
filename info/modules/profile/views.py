@@ -1,7 +1,9 @@
-from flask import render_template, g, redirect, request, jsonify
+from flask import render_template, g, redirect, request, jsonify, current_app
 
+from info import constants
 from info.modules.profile import profile_blu
 from info.utils.common import user_login_data
+from info.utils.image_store import storage
 from info.utils.response_code import RET
 
 
@@ -14,6 +16,25 @@ def pic_info():
         return render_template('news/user_pic_info.html', data={"user": user.to_dict()})
 
     # TODO 如果是POST表示修改头像
+    # 1. 获取参数图片
+    try:
+        file = request.files.get("avatar").read()
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.PARAMERR, errmsg="参数错误")
+    # 2.上传头像
+    try:
+        key = storage(file)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.THIRDERR, errmsg="上传头像失败")
+
+    # 3.保存头像地址
+    user.avatar_url = key
+
+    return jsonify(errno=RET.OK, errmsg="OK", avatar_url=constants.QINIU_DOMIN_PREFIX+key)
+
+
 
 
 @profile_blu.route('/base_info', methods=["GET", "POST"])
