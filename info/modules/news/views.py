@@ -53,7 +53,7 @@ def comment_like():
             comment_like_model = CommentLike()
             comment_like_model.user_id = user.id
             comment_like_model.comment_id = comment_id
-            db.session.add()
+            db.session.add(comment_like_model)
 
     else:
         # 取消点赞评论
@@ -61,7 +61,7 @@ def comment_like():
 
         comment_like_model = CommentLike.query.filter(CommentLike.user_id==user.id, CommentLike.comment_id==comment_id).first()
         if comment_like_model:
-            comment_like_model.delete()
+            db.session.delete(comment_like_model)
     try:
         db.session.commit()
     except Exception as e:
