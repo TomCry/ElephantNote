@@ -49,11 +49,17 @@ def comment_like():
     if action == "add":
         # 点赞
         comment_like_model = CommentLike.query.filter(CommentLike.user_id==user.id, CommentLike.comment_id==comment_id).first()
+
         if not comment_like_model:
             comment_like_model = CommentLike()
             comment_like_model.user_id = user.id
             comment_like_model.comment_id = comment_id
+            # !!! 更新点赞条数
+            comment_model = Comment.query.filter(Comment.id == comment_id).first()
+            comment_model.like_count += 1
             db.session.add(comment_like_model)
+            # db.session.add()
+
 
     else:
         # 取消点赞评论
@@ -61,6 +67,9 @@ def comment_like():
 
         comment_like_model = CommentLike.query.filter(CommentLike.user_id==user.id, CommentLike.comment_id==comment_id).first()
         if comment_like_model:
+            comment_model = Comment.query.filter(Comment.id == comment_id).first()
+            if comment_model.like_count > 0:
+                comment_model.like_count -= 1
             db.session.delete(comment_like_model)
     try:
         db.session.commit()
