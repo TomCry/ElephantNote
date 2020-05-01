@@ -7,6 +7,31 @@ from info.utils.image_store import storage
 from info.utils.response_code import RET
 
 
+@profile_blu.route('/pass_info', methods=["GET","POST"])
+@user_login_data
+def pass_info():
+    if request.method == "GET":
+
+        return render_template('news/user_pass_info.html')
+
+    # 1.获取参数
+    new_password = request.json.get("new_password")
+    old_password = request.json.get("old_password")
+
+    # 2.校验参数
+    if not all([new_password, old_password]):
+        return jsonify(errno=RET.PARAMERR, errmsg="参数错误")
+
+    # 3.判断旧密码
+    user = g.user
+    if not user.check_password(old_password):
+        return jsonify(errno=RET.PWDERR, errmsg="旧密码输入错误")
+
+    # 4.设置新密码
+    user.password = new_password
+
+    return jsonify(errno=RET.OK, errmsg="密码设置成功")
+
 @profile_blu.route('/pic_info', methods=["GET","POST"])
 @user_login_data
 def pic_info():
@@ -31,8 +56,11 @@ def pic_info():
 
     # 3.保存头像地址
     user.avatar_url = key
+    data = {
+        "avatar_url": constants.QINIU_DOMIN_PREFIX,
+    }
 
-    return jsonify(errno=RET.OK, errmsg="OK", avatar_url=constants.QINIU_DOMIN_PREFIX+key)
+    return jsonify(errno=RET.OK, errmsg="OK", data=data)
 
 
 
