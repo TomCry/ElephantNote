@@ -9,6 +9,33 @@ from info.modules.admin import admin_blu
 from info.utils.common import user_login_data
 
 
+@admin_blu.route('/news_review_detail/<int:news_id>')
+def news_review_detail(news_id):
+
+    # 获取新闻id
+
+    # news_id = request.args.get("news_id")
+    # if not news_id:
+    #     return render_template('admin/news_review_detail.html', data={"errmsg":"未查询到此新闻"})
+
+    # 通过id查询新闻
+    news = None
+    try:
+        news = News.query.get(news_id)
+    except Exception as e:
+        current_app.logger.error(e)
+
+    if not news:
+        return render_template('admin/news_review_detail.html', data={"errmsg": "未查询到此新闻"})
+
+    # 返回数据
+    data = {
+        "news": news.to_dict()
+    }
+
+    return render_template('admin/news_review_detail.html', data=data)
+
+
 @admin_blu.route('/review_list')
 def review_list():
     page = request.args.get("p", 1)
@@ -29,7 +56,9 @@ def review_list():
         filters.append(News.title.contains(keywords))
 
     try:
-        paginate = News.query.filter(*filters).order_by(News.create_time.desc()).paginate(page, constants.ADMIN_NEWS_PAGE_MAX_COUNT, False)
+        paginate = News.query.filter(*filters).order_by(News.create_time.desc()).paginate(page,
+                                                                                          constants.ADMIN_NEWS_PAGE_MAX_COUNT,
+                                                                                          False)
 
         news_list = paginate.items
         current_page = paginate.page
