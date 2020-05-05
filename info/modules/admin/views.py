@@ -1,8 +1,49 @@
+import time
+from datetime import datetime
+
 from flask import render_template, request, current_app, session, redirect, url_for, g
 
 from info.models import User
 from info.modules.admin import admin_blu
 from info.utils.common import user_login_data
+
+
+@admin_blu.route('/user_count')
+def user_count():
+    total_count = 0
+    try:
+        total_count = User.query.filter(User.is_admin == False).count()
+    except Exception as e:
+        current_app.logger.error(e)
+    # 月新增数大于当月1号0分0秒
+    month_count = 0
+    t = time.localtime()
+    print(t)
+    begin_mon = datetime.strptime(('%s-%02d-01' % (t.tm_year,t.tm_mon)), "%Y-%m-%d")
+    print(begin_mon)
+
+    try:
+        month_count = User.query.filter(User.is_admin == False, User.create_time > begin_mon).count()
+    except Exception as e:
+        current_app.logger.error(e)
+
+
+    day_count = 0
+    t = time.localtime()
+    print(t)
+    begin_day = datetime.strptime(('%s-%02d-%02d' % (t.tm_year, t.tm_mon, t.tm_mday)), "%Y-%m-%d")
+    print(begin_mon)
+    try:
+        day_count = User.query.filter(User.is_admin == False, User.create_time > begin_day).count()
+    except Exception as e:
+        current_app.logger.error(e)
+
+    data = {
+        "total_count": total_count,
+        "month_count": month_count,
+        "day_count": day_count,
+    }
+    return render_template('admin/user_count.html', data=data)
 
 
 @admin_blu.route('/index')
