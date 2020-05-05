@@ -1,5 +1,5 @@
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import render_template, request, current_app, session, redirect, url_for, g
 
@@ -19,14 +19,13 @@ def user_count():
     month_count = 0
     t = time.localtime()
     print(t)
-    begin_mon = datetime.strptime(('%s-%02d-01' % (t.tm_year,t.tm_mon)), "%Y-%m-%d")
+    begin_mon = datetime.strptime(('%s-%02d-01' % (t.tm_year, t.tm_mon)), "%Y-%m-%d")
     print(begin_mon)
 
     try:
         month_count = User.query.filter(User.is_admin == False, User.create_time > begin_mon).count()
     except Exception as e:
         current_app.logger.error(e)
-
 
     day_count = 0
     t = time.localtime()
@@ -38,11 +37,33 @@ def user_count():
     except Exception as e:
         current_app.logger.error(e)
 
+    # 折线图数据
+    active_time = []
+    active_count = []
+    # 取到当前这一天的时间 -1 -2 -3
+    # 今天的0点0分
+    # 今天的24点0分
+    # 取今天活跃用户数量 登录时间>=今天0点0分 <=今天23点59分
+    begin_time_str = ('%s-%02d-%02d' % (t.tm_year, t.tm_mon, t.tm_mday))
+    begin_time = datetime.strptime(begin_time_str, "%Y-%m-%d")
+    for i in range(0, 31):
+        begin_date = begin_time - timedelta(days=i)
+        end_date = begin_time - timedelta(days=(i-1))
+        count = User.query.filter(User.is_admin == False, User.last_login >= begin_date, User.last_login <= end_date).count()
+        active_count.append(count)
+        active_time.append(begin_date.strftime('%Y-%m-%d'))
+
+    active_count.reverse()
+    active_time.reverse()
+
     data = {
         "total_count": total_count,
         "month_count": month_count,
         "day_count": day_count,
+        "active_time": active_time,
+        "active_count": active_count
     }
+
     return render_template('admin/user_count.html', data=data)
 
 
