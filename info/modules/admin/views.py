@@ -3,9 +3,11 @@ from flask import render_template, request, current_app, session, redirect, url_
 from info.models import User
 from info.modules.admin import admin_blu
 
+
 @admin_blu.route('/index')
 def index():
     return render_template('admin/index.html')
+
 
 @admin_blu.route('/login', methods=["GET", "POST"])
 def login():
@@ -18,7 +20,6 @@ def login():
             return redirect(url_for("admin.index"))
 
         return render_template('admin/login.html')
-
 
     # 取到登录的参数
     username = request.form.get("username")

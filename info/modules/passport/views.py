@@ -21,6 +21,8 @@ def logout():
     session.pop('user_id', None)
     session.pop('mobile', None)
     session.pop('nick_name', None)
+    # 对于管理员用户需要pop掉它的管理员标志
+    session.pop('is_admin', None)
 
     return jsonify(errno=RET.OK, errmsg="退出成功")
 
