@@ -1,6 +1,6 @@
 from logging.handlers import RotatingFileHandler
 
-from flask import Flask
+from flask import Flask, render_template, g
 import logging
 from flask_session import Session
 from flask_sqlalchemy import SQLAlchemy
@@ -9,8 +9,6 @@ from flask_wtf.csrf import generate_csrf
 from redis import StrictRedis
 
 from config import config
-
-
 
 
 db = SQLAlchemy()
@@ -54,6 +52,18 @@ def create_app(config_name):
 
     # 添加自定义过滤器
     app.add_template_filter(to_index_class, "index_class")
+
+
+    from info.utils.common import user_login_data
+    @app.errorhandler(404)
+    @user_login_data
+    def page_not_found(e):
+        user = g.user
+
+        data = {
+            "user": user.to_dict() if user else None,
+        }
+        return render_template('news/404.html',data=data)
 
     @app.after_request
     def after_request(response):
