@@ -1,10 +1,10 @@
 import time
 from datetime import datetime, timedelta
 
-from flask import render_template, request, current_app, session, redirect, url_for, g, jsonify
+from flask import render_template, request, current_app, session, redirect, url_for, g, jsonify, abort
 
 from info import constants
-from info.models import User, News
+from info.models import User, News, Category
 from info.modules.admin import admin_blu
 from info.utils.common import user_login_data
 from info.utils.response_code import RET
@@ -13,7 +13,50 @@ from info.utils.response_code import RET
 @admin_blu.route("/news_edit_detail")
 def news_edit_detail():
     # 查询点击的新闻的相关数据并传入到模板中
-    return render_template('admin/news_edit_detail.html')
+    news_id = request.args.get("news_id")
+
+    if not news_id:
+        abort(404)
+
+    try:
+        news_id = int(news_id)
+    except Exception as e:
+        current_app.logger.error(e)
+        return render_template('admin/news_edit_detail.html', errmsg="参数错误")
+
+    try:
+        news = News.query.get(news_id)
+    except Exception as e:
+        current_app.logger.error(e)
+        return render_template('admin/news_edit_detail.html', errmsg="查询数据错误")
+
+    if not news:
+        return render_template('admin/news_edit_detail.html', errmsg="未查询到数据")
+
+    # 查询分类数据
+    try:
+        categories = Category.query.all()
+    except Exception as e:
+        current_app.logger.error(e)
+        return render_template('admin/news_edit_detail.html', errmsg="查询数据错误")
+
+    category_dict_li = []
+    for category in categories:
+        #  取到分类的字典
+        cate_dict = category.to_dict()
+        # 判断遍历的分类是否是当前分类
+        if category.id == news.category_id:
+            cate_dict["is_selected"] = True
+        category_dict_li.append(category.to_dict())
+    # 移除最新分类
+    category_dict_li.pop(0)
+
+    data = {
+        "news": news.to_dict(),
+        "categories": category_dict_li
+    }
+
+    return render_template('admin/news_edit_detail.html', data=data)
 
 
 @admin_blu.route('/news_edit')
