@@ -15,7 +15,7 @@ class Config(object):
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
 
     # Redis配置
-    REDIS_HOST = '172.16.211.144'
+    REDIS_HOST = '172.16.211.146'
     REDIS_PORT = 6379
 
     # Session保存配置
