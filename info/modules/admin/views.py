@@ -10,6 +10,45 @@ from info.utils.common import user_login_data
 from info.utils.response_code import RET
 
 
+@admin_blu.route('/news_edit')
+def news_edit():
+    page = request.args.get("p", 1)
+    keywords = request.args.get("keywords", None)
+    try:
+        page = int(page)
+    except Exception as e:
+        current_app.logger.error(e)
+        page = 1
+
+    news_list = []
+    current_page = 1
+    total_page = 1
+
+    filters = [News.status == 0]
+    # 如果关键字存在，那么添加关键字过滤
+    if keywords:
+        filters.append(News.title.contains(keywords))
+
+    try:
+        paginate = News.query.filter(*filters).order_by(News.create_time.desc()).paginate(page,
+                                                                                          constants.ADMIN_NEWS_PAGE_MAX_COUNT,
+                                                                                          False)
+
+        news_list = paginate.items
+        current_page = paginate.page
+        total_page = paginate.pages
+    except Exception as e:
+        current_app.logger.error(e)
+
+    news_dict_list = []
+    for news in news_list:
+        news_dict_list.append(news.to_basic_dict())
+
+    context = {"total_page": total_page, "current_page": current_page, "news_list": news_dict_list}
+
+    return render_template('admin/news_edit.html', data=context)
+
+
 @admin_blu.route('/news_review_action', methods=["POST"])
 def news_review_action():
     # 1.接收参数
@@ -19,7 +58,7 @@ def news_review_action():
     if not all([news_id, action]):
         return jsonify(errno=RET.PARAMERR, errmsg="参数错误")
 
-    if action not in("accept", "reject"):
+    if action not in ("accept", "reject"):
         return jsonify(errno=RET.PARAMERR, errmsg="参数错误")
 
     # 查询到指定新闻数据
@@ -44,13 +83,8 @@ def news_review_action():
     return jsonify(errno=RET.OK, errmsg="OK")
 
 
-
-
-
-
 @admin_blu.route('/news_review_detail/<int:news_id>')
 def news_review_detail(news_id):
-
     # 获取新闻id
 
     # news_id = request.args.get("news_id")
