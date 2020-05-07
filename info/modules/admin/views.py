@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 
 from flask import render_template, request, current_app, session, redirect, url_for, g, jsonify, abort
 
-from info import constants
+from info import constants, db
 from info.models import User, News, Category
 from info.modules.admin import admin_blu
 from info.utils.common import user_login_data
@@ -11,31 +11,64 @@ from info.utils.image_store import storage
 from info.utils.response_code import RET
 
 
-@admin_blu.route('/news_type')
+
+
+
+@admin_blu.route('/news_type', methods=["GET", "POST"])
 def news_type():
+    if request.method == "GET":
+        try:
+            categories = Category.query.all()
+        except Exception as e:
+            current_app.logger.error(e)
+            return render_template('admin/news_type.html', errmsg="查询数据错误")
 
-    try:
-        categories = Category.query.all()
-    except Exception as e:
-        current_app.logger.error(e)
-        return render_template('admin/news_type.html', errmsg="查询数据错误")
+        category_dict_li = []
+        for category in categories:
+            category_dict_li.append(category.to_dict())
 
-    category_dict_li = []
-    for category in categories:
-        category_dict_li.append(category.to_dict())
+        category_dict_li.pop(0)
 
-    category_dict_li.pop(0)
+        data = {
+            "categories": category_dict_li,
+        }
 
-    data = {
-        "categories": category_dict_li,
-    }
+        return render_template('admin/news_type.html', data=data)
 
-    return render_template('admin/news_type.html', data=data)
+    # 新增或添加分类
+    # 1.获取参数
+    category_name = request.json.get("name")
+    # 如果传id，则代表编辑
+    category_id = request.json.get("id")
+
+    if not category_name:
+        return jsonify(errno=RET.PARAMERR, errmsg="参数错误")
+
+    if category_id:
+        # 修改编辑分类
+        try:
+            category_id = int(category_id)
+            category = Category.query.get(category_id)
+        except Exception as e:
+            current_app.logger.error(e)
+            return jsonify(errno=RET.PARAMERR, errmsg="参数错误")
+
+        if not category:
+            return jsonify(errno=RET.NODATA, errmsg="未查到分类数据")
+
+        category.name = category_name
+    else:
+        # 新增
+        category = Category()
+        category.name = category_name
+        db.session.add(category)
+
+    return jsonify(errno=RET.OK, errmsg="OK")
+
 
 
 @admin_blu.route("/news_edit_detail", methods=["GET", "POST"])
 def news_edit_detail():
-
     if request.method == "GET":
         # 查询点击的新闻的相关数据并传入到模板中
         news_id = request.args.get("news_id")
@@ -91,7 +124,7 @@ def news_edit_detail():
     index_image = request.files.get("index_image")
     category_id = request.form.get("category_id")
     # 1.1判断数据是否有值
-    if not all([title,digest,content,category_id]):
+    if not all([title, digest, content, category_id]):
         return jsonify(errno=RET.PARAMERR, errmsg="参数有误")
 
     # news = None
@@ -102,7 +135,6 @@ def news_edit_detail():
         return jsonify(errno=RET.DBERR, errmsg="数据查询失败")
     if not news:
         return jsonify(errno=RET.NODATA, errmsg="未查询到新闻数据")
-
 
     # 读取图片
     if index_image:
@@ -127,9 +159,6 @@ def news_edit_detail():
 
     # 数据库提交保存
     return jsonify(errno=RET.OK, errmsg="OK")
-
-
-
 
 
 @admin_blu.route('/news_edit')
