@@ -1,17 +1,51 @@
-from flask import render_template, g, redirect, request, jsonify, current_app
+from flask import render_template, g, redirect, request, jsonify, current_app, abort
 
 from info import constants, db
-from info.models import Category, News
+from info.models import Category, News, User
 from info.modules.profile import profile_blu
 from info.utils.common import user_login_data
 from info.utils.image_store import storage
 from info.utils.response_code import RET
 
 
+@profile_blu.route('/other_info')
+@user_login_data
+def other_info():
+    user = g.user
+    # 去查询其他人的用户信息
+    other_id = request.args.get("user_id")
+    # 查询指定id的用户信息
+    if not other_id:
+        abort(404)
+
+
+    try:
+        other = User.query.get(other_id)
+    except Exception as e:
+        current_app.logger.error(e)
+
+    if not other:
+        abort(404)
+
+    is_followed = False
+    # 如果当前新闻有作者，并且当前登录用户已关注该用户，is_followed=True
+    if other.user and user:
+        # 判断user是否关注news.user
+        if other.user in user.followed:
+            is_followed = True
+
+    data={
+        "user": user.to_dict() if user else None,
+        "other": other.to_dict(),
+        "is_followed": is_followed
+
+    }
+    return render_template('news/other.html', data=data)
+
+
 @profile_blu.route('/user_follow')
 @user_login_data
 def user_follow():
-
     # 查询数据
     p = request.args.get("p", 1)
     try:
@@ -56,13 +90,14 @@ def user_follow():
 @user_login_data
 def user_news_list():
     user = g.user
-    page = request.args.get("p",1)
+    page = request.args.get("p", 1)
 
     news_list = []
     current_page = 1
     total_page = 1
     try:
-        pagination = News.query.filter(News.user_id==user.id).paginate(page, constants.USER_COLLECTION_MAX_NEWS,False)
+        pagination = News.query.filter(News.user_id == user.id).paginate(page, constants.USER_COLLECTION_MAX_NEWS,
+                                                                         False)
         news_list = pagination.items
         current_page = pagination.page
         total_page = pagination.pages
@@ -79,14 +114,12 @@ def user_news_list():
         "total_page": total_page
     }
 
-    return render_template('news/user_news_list.html',data=data)
+    return render_template('news/user_news_list.html', data=data)
 
 
 @profile_blu.route('/news_release', methods=["GET", "POST"])
 @user_login_data
 def news_release():
-
-
     if request.method == "GET":
         # 加载新闻分类数据
         try:
@@ -132,7 +165,6 @@ def news_release():
         current_app.logger.error(e)
         return jsonify(errno=RET.PARAMERR, errmsg="参数有误")
 
-
     news = News()
     news.title = title
     news.digest = digest
@@ -153,10 +185,10 @@ def news_release():
 
     return jsonify(errno=RET.OK, errsmg="OK")
 
+
 @profile_blu.route('/collection')
 @user_login_data
 def user_collection():
-
     # 1.获取参数
     page = request.args.get("p", 1)
     # 2.判断参数
@@ -177,7 +209,6 @@ def user_collection():
     except Exception as e:
         current_app.logger.error(e)
 
-
     news_dict_li = []
     for news in news_list:
         news_dict_li.append(news.to_basic_dict())
@@ -188,15 +219,13 @@ def user_collection():
         "collections": news_dict_li
     }
 
-
     return render_template('news/user_collection.html', data=data)
 
 
-@profile_blu.route('/pass_info', methods=["GET","POST"])
+@profile_blu.route('/pass_info', methods=["GET", "POST"])
 @user_login_data
 def pass_info():
     if request.method == "GET":
-
         return render_template('news/user_pass_info.html')
 
     # 1.获取参数
@@ -217,10 +246,10 @@ def pass_info():
 
     return jsonify(errno=RET.OK, errmsg="密码设置成功")
 
-@profile_blu.route('/pic_info', methods=["GET","POST"])
+
+@profile_blu.route('/pic_info', methods=["GET", "POST"])
 @user_login_data
 def pic_info():
-
     user = g.user
     if request.method == "GET":
         return render_template('news/user_pic_info.html', data={"user": user.to_dict()})
@@ -246,8 +275,6 @@ def pic_info():
     }
 
     return jsonify(errno=RET.OK, errmsg="OK", data=data)
-
-
 
 
 @profile_blu.route('/base_info', methods=["GET", "POST"])
@@ -276,7 +303,6 @@ def base_info():
     return jsonify(errno=RET.OK, errmsg="OK")
 
 
-
 @profile_blu.route('/info')
 @user_login_data
 def user_info():
@@ -285,6 +311,6 @@ def user_info():
     if not user:
         return redirect("/")
     data = {
-        "user":user.to_dict(),
+        "user": user.to_dict(),
     }
-    return render_template('news/user.html',data=data)
+    return render_template('news/user.html', data=data)
