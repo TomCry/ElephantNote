@@ -4,12 +4,57 @@ from info import constants, db
 from info.models import News, User, Comment, CommentLike
 from info.modules.news import news_blu
 
-
 # 127.0.0.1:9999/news/2
 from info.utils.common import user_login_data
 from info.utils.response_code import RET
 
-@news_blu.route('/comment_like',methods=["POST"])
+
+@news_blu.route('/followed_user', methods=["POST"])
+@user_login_data
+def followed_user():
+    """关注或取消关注用户"""
+    user = g.user
+
+    if not user:
+        return jsonify(errno=RET.SESSIONERR, errmsg="未登录")
+
+    # 取参数
+    user_id = request.json.get("user_id")
+    action = request.json.get("action")
+
+    if not all([user_id, action]):
+        return jsonify(errno=RET.PARAMERR, errmsg="参数错误")
+
+    if action not in ("follow", "unfollow"):
+        return jsonify(errno=RET.PARAMERR, errmsg="参数错误")
+
+    try:
+        other_user = User.query.get(user_id)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="数据查询错误")
+
+    if not other_user:
+        return jsonify(errno=RET.NODATA, errmsg="未查询到数据")
+
+    if action == "follow":
+        if other_user not in user.followed:
+            # 当前用户关注列表添加
+            # other_user.followers.append(user)
+            user.followed.append(other_user)
+        else:
+            return jsonify(errno=RET.DATAEXIST, errmsg="当前用户已被关注")
+    else:
+        # 取消关注
+        if other_user in user.followed:
+            user.followed.remove(other_user)
+        else:
+            return jsonify(errno=RET.DATAEXIST, errmsg="当前用户未被关注")
+
+    return jsonify(errno=RET.OK, errmsg="OK")
+
+
+@news_blu.route('/comment_like', methods=["POST"])
 @user_login_data
 def comment_like():
     """
@@ -48,7 +93,8 @@ def comment_like():
 
     if action == "add":
         # 点赞
-        comment_like_model = CommentLike.query.filter(CommentLike.user_id==user.id, CommentLike.comment_id==comment_id).first()
+        comment_like_model = CommentLike.query.filter(CommentLike.user_id == user.id,
+                                                      CommentLike.comment_id == comment_id).first()
 
         if not comment_like_model:
             comment_like_model = CommentLike()
@@ -65,7 +111,8 @@ def comment_like():
         # 取消点赞评论
         # 删模型
 
-        comment_like_model = CommentLike.query.filter(CommentLike.user_id==user.id, CommentLike.comment_id==comment_id).first()
+        comment_like_model = CommentLike.query.filter(CommentLike.user_id == user.id,
+                                                      CommentLike.comment_id == comment_id).first()
         if comment_like_model:
             comment_model = Comment.query.filter(Comment.id == comment_id).first()
             if comment_model.like_count > 0:
@@ -77,11 +124,9 @@ def comment_like():
 
         db.session.rollback()
         current_app.logger.error(e)
-        return jsonify(errno=RET.DBERR,errmsg="数据库操作失败")
+        return jsonify(errno=RET.DBERR, errmsg="数据库操作失败")
 
     return jsonify(errno=RET.OK, errmsg="ok")
-
-
 
 
 @news_blu.route('/news_comment', methods=["POST"])
@@ -144,7 +189,7 @@ def comment_news():
     return jsonify(errno=RET.OK, errmsg="OK", data=comment.to_dict())
 
 
-@news_blu.route('/news_collect',methods=["POST"])
+@news_blu.route('/news_collect', methods=["POST"])
 @user_login_data
 def collect_news():
     """
@@ -161,11 +206,10 @@ def collect_news():
     action = request.json.get("action")
 
     if not all([news_id, action]):
-        return jsonify(errno=RET.PARAMERR,errmsg="参数错误")
+        return jsonify(errno=RET.PARAMERR, errmsg="参数错误")
 
-    if action not in ["collect","cancel_collect"]:
-        return jsonify(errno=RET.PARAMERR,errmsg="参数错误")
-
+    if action not in ["collect", "cancel_collect"]:
+        return jsonify(errno=RET.PARAMERR, errmsg="参数错误")
 
     try:
         news_id = int(news_id)
@@ -194,10 +238,7 @@ def collect_news():
         if news not in user.collection_news:
             user.collection_news.append(news)
 
-
     return jsonify(errno=RET.OK, errmsg="操作成功")
-
-
 
 
 @news_blu.route('/<int:news_id>')
@@ -259,7 +300,7 @@ def news_detail(news_id):
     # 去查询评论数据
     comments = []
     try:
-        comments = Comment.query.filter(Comment.news_id==news_id).order_by(Comment.create_time.desc()).all()
+        comments = Comment.query.filter(Comment.news_id == news_id).order_by(Comment.create_time.desc()).all()
     except Exception as e:
         current_app.logger.error(e)
 
@@ -271,12 +312,12 @@ def news_detail(news_id):
             comment_ids = [comment.id for comment in comments]
             # 2.查询当前评论中哪些评论被当前用户所点赞([CommentLike]) 查询评论comment_id在评论id列表内的所有数据 CommentLike.user_id = g.user
             print(user.id)
-            comment_likes = CommentLike.query.filter(CommentLike.comment_id.in_(comment_ids), CommentLike.user_id == user.id).all()
+            comment_likes = CommentLike.query.filter(CommentLike.comment_id.in_(comment_ids),
+                                                     CommentLike.user_id == user.id).all()
             # 3.2查询列表[CommentLike] --》 [3,5] 取到所有点赞的评论id
             comment_like_ids = [comment_like.comment_id for comment_like in comment_likes]
         except Exception as e:
             current_app.logger.error(e)
-
 
     comment_dict_li = []
     for comment in comments:
@@ -286,7 +327,6 @@ def news_detail(news_id):
         if comment.id in comment_like_ids:
             comment_dict["is_like"] = True
         comment_dict_li.append(comment_dict)
-
 
     is_followed = False
     # 如果当前新闻有作者，并且当前登录用户已关注该用户，is_followed=True
@@ -305,4 +345,4 @@ def news_detail(news_id):
 
     }
 
-    return render_template("news/detail.html",data=data)
+    return render_template("news/detail.html", data=data)
