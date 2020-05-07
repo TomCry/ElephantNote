@@ -11,6 +11,28 @@ from info.utils.image_store import storage
 from info.utils.response_code import RET
 
 
+@admin_blu.route('/news_type')
+def news_type():
+
+    try:
+        categories = Category.query.all()
+    except Exception as e:
+        current_app.logger.error(e)
+        return render_template('admin/news_type.html', errmsg="查询数据错误")
+
+    category_dict_li = []
+    for category in categories:
+        category_dict_li.append(category.to_dict())
+
+    category_dict_li.pop(0)
+
+    data = {
+        "categories": category_dict_li,
+    }
+
+    return render_template('admin/news_type.html', data=data)
+
+
 @admin_blu.route("/news_edit_detail", methods=["GET", "POST"])
 def news_edit_detail():
 
