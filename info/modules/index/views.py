@@ -98,7 +98,7 @@ def index():
 
     data = {
         "user": user.to_dict() if user else None,
-        "news_dict_list": news_dict_list,
+        "news_dict_li": news_dict_list,
         "category_li": category_li
     }
 
