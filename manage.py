@@ -1,33 +1,47 @@
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_wtf import CSRFProtect
-from redis import StrictRedis
+import logging
 
-class Config(object):
-    """项目的配置"""
-    DEBUG = True
-    # 为Mysql添加配置
-    SQLALCHEMY_DATABASE_URI="mysql+pymysql://root:enzyme0313@127.0.0.1:3306/elephant"
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
+from flask import session, current_app
+from flask_script import Manager
+from flask_migrate import Migrate, MigrateCommand
 
-    # Redis配置
-    REDIS_HOST = ''
-    REDIS_PORT = ''
+from info import create_app, db, models
 
-app = Flask(__name__)
-# 加载配置
-app.config.from_object(Config)
+# manage.py是程序启动的入口，只关心启动的相关参数以及内容，不关心具体业务逻辑
 
-db = SQLAlchemy(app)
+# 通过指定的配置名字创建对应配置的app
+from info.models import User
 
-redis_store = StrictRedis(host=Config.REDIS_HOST,port=Config.REDIS_PORT)
-# 开启csrf保护,只做服务器验证功能
-CSRFProtect(app)
+app = create_app('dev')
 
-@app.route('/')
-def index():
-    return "index"
+manager = Manager(app)
+#将app与db关联
+Migrate(app, db)
+#将迁移命令添加到manager中
+manager.add_command('db', MigrateCommand)
+
+
+@manager.option('-n', '-name', dest="name")
+@manager.option('-p', '-password', dest='password')
+def createsuperuser(name, password):
+    if not all([name, password]):
+        print("参数不足")
+
+    user = User()
+    user.nick_name = name
+    user.mobile = name
+    user.password = password
+    user.is_admin = True
+
+    try:
+        db.session.add(user)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        print(e)
+
+    print("添加成功")
+
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    manager.run()
